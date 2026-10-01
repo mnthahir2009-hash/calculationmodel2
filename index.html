@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Channel Calculation Model</title>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#1d1a16;--mute:#6b645a;--line:#e6dfd3;--acc:#8a4b1f;--acc2:#f1e4d3}
+@media (prefers-color-scheme:dark){:root{--bg:#17140f;--card:#211d17;--ink:#f3ede3;--mute:#a89f90;--line:#3a342a;--acc:#e0a36b;--acc2:#2e261b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:40px 20px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+label{font-weight:600;font-size:.8rem;color:var(--mute);display:block;margin-bottom:4px}
+input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:1rem system-ui,sans-serif}
+.wrap{overflow-x:auto;margin-top:18px}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:560px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:600}
+td input{width:76px;padding:5px 6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0 6px}
+.kpi{background:var(--acc2);border-radius:12px;padding:14px}
+.kpi b{display:block;font-size:1.35rem;color:var(--acc)}
+.kpi span{font-size:.78rem;color:var(--mute)}
+.note{font-size:.85rem;color:var(--mute);margin:12px 0 0}
+</style></head><body><main>
+<div class="card">
+<div class="inputs">
+<div><label>Pairs sold per month</label><input id="pairs" type="number" value="30000"></div>
+<div><label>Average MRP (₹)</label><input id="mrp" type="number" value="799"></div>
+<div><label>Factory cost per pair (₹)</label><input id="cogs" type="number" value="290"></div>
+<div><label>Fixed expansion cost / month (₹)</label><input id="fixed" type="number" value="400000"></div>
+</div>
+<div class="wrap"><table id="t"><thead><tr><th>Channel</th><th>Mix %</th><th>Realisation % of MRP</th><th>Selling cost % of realisation</th><th>Credit days</th></tr></thead><tbody></tbody></table></div>
+<p class="note" id="chk"></p>
+<div class="kpis" id="k"></div>
+<div class="wrap"><table id="o"><thead><tr><th>Channel</th><th>Pairs</th><th>Net revenue</th><th>Contribution</th><th>Per pair</th></tr></thead><tbody></tbody></table></div>
+<p class="note">Realisation = money you actually receive as a % of MRP (after dealer margin, discounts or commission). Selling cost = freight, returns, ads, rent and staff for that channel. Defaults are illustrative; replace with your real numbers.</p>
+</div>
+</main>
+<script>
+var C=[["Distributors & dealers",40,50,8,45],["Multi-brand retailers",15,58,10,30],["Franchise stores",10,55,9,15],["Own stores",5,85,35,0],["Marketplaces",20,72,28,15],["Own website",5,80,25,0],["Institutional / bulk",5,45,4,60]];
+var tb=document.querySelector('#t tbody');
+C.forEach(function(c,i){var r=document.createElement('tr');r.innerHTML='<td>'+c[0]+'</td>'+[1,2,3,4].map(function(j){return '<td><input type="number" data-i="'+i+'" data-j="'+j+'" value="'+c[j]+'"></td>'}).join('');tb.appendChild(r)});
+var fm=function(n){return '₹'+Math.round(n).toLocaleString('en-IN')};
+function calc(){
+ var p=+pairs.value,m=+mrp.value,g=+cogs.value,f=+fixed.value;
+ document.querySelectorAll('#t input').forEach(function(e){C[e.dataset.i][e.dataset.j]=+e.value});
+ var mix=C.reduce(function(a,c){return a+c[1]},0);
+ chk.textContent=mix==100?'':'Mix adds up to '+mix+'%, not 100%. Results are scaled to what you entered.';
+ var rev=0,cont=0,rec=0,rows='';
+ C.forEach(function(c){var n=p*c[1]/100,r=n*m*c[2]/100,s=r*c[3]/100,k=r-s-n*g;rev+=r;cont+=k;rec+=r*c[4]/30;
+  rows+='<tr><td>'+c[0]+'</td><td>'+Math.round(n).toLocaleString('en-IN')+'</td><td>'+fm(r)+'</td><td>'+fm(k)+'</td><td>'+(n?fm(k/n):'-')+'</td></tr>'});
+ var net=cont-f;
+ document.querySelector('#o tbody').innerHTML=rows;
+ k.innerHTML=[['Monthly net revenue',fm(rev)],['Contribution',fm(cont)],['After fixed costs',fm(net)],['Margin on revenue',(rev?(net/rev*100).toFixed(1):0)+'%'],['Cash stuck in credit',fm(rec)]].map(function(x){return '<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'}).join('');
+}
+document.querySelectorAll('input').forEach(function(e){e.addEventListener('input',calc)});calc();
+</script></body></html>
